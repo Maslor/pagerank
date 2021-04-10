@@ -13,8 +13,11 @@ def main():
     corpus = crawl(sys.argv[1])
     ranks = sample_pagerank(corpus, DAMPING, SAMPLES)
     print(f"PageRank Results from Sampling (n = {SAMPLES})")
+    sum_sampling = 0
     for page in sorted(ranks):
         print(f"  {page}: {ranks[page]:.4f}")
+        sum_sampling += ranks[page]
+    print(f"Total iteration (should be 1): {sum_sampling}")
     ranks = iterate_pagerank(corpus, DAMPING)
     print(f"PageRank Results from Iteration")
     for page in sorted(ranks):
@@ -57,7 +60,23 @@ def transition_model(corpus, page, damping_factor):
     linked to by `page`. With probability `1 - damping_factor`, choose
     a link at random chosen from all pages in the corpus.
     """
-    raise NotImplementedError
+    transition_dictionary = {}
+
+    linked_pages = corpus.get(page)
+
+    probability_random = (1 - damping_factor) / len(corpus)
+
+    if len(linked_pages) > 0:
+        probability_linked = damping_factor / len(linked_pages)
+
+        for page in linked_pages:
+            transition_dictionary[page] = probability_linked + probability_random
+
+    for page in corpus:
+        if page not in transition_dictionary:
+            transition_dictionary[page] = probability_random
+
+    return transition_dictionary
 
 
 def sample_pagerank(corpus, damping_factor, n):
@@ -69,7 +88,32 @@ def sample_pagerank(corpus, damping_factor, n):
     their estimated PageRank value (a value between 0 and 1). All
     PageRank values should sum to 1.
     """
-    raise NotImplementedError
+
+    sample_list = []
+
+    random_page = random.sample(sorted(corpus), 1)[0]
+    current_page = random_page
+
+    i = 0
+    while i < n:
+        sample_list.append(current_page)
+        transition_dict = transition_model(corpus, current_page, damping_factor)
+        list_of_probabilities = []
+        sorted_transition = sorted(transition_dict)
+        for page in sorted_transition:
+            list_of_probabilities.append(transition_dict.get(page))
+        list_of_probabilities = transition_dict.values()
+        current_page = random.choices(sorted_transition, list_of_probabilities)[0]
+        i += 1
+
+    sample_dictionary = {}
+    for page in corpus:
+        if page in sample_list:
+            sample_dictionary[page] = sample_list.count(page) / n
+        else:
+            sample_dictionary[page] = 0
+
+    return sample_dictionary
 
 
 def iterate_pagerank(corpus, damping_factor):
