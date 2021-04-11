@@ -13,15 +13,15 @@ def main():
     corpus = crawl(sys.argv[1])
     ranks = sample_pagerank(corpus, DAMPING, SAMPLES)
     print(f"PageRank Results from Sampling (n = {SAMPLES})")
-    sum_sampling = 0
     for page in sorted(ranks):
         print(f"  {page}: {ranks[page]:.4f}")
-        sum_sampling += ranks[page]
-    print(f"Total iteration (should be 1): {sum_sampling}")
     ranks = iterate_pagerank(corpus, DAMPING)
     print(f"PageRank Results from Iteration")
+    sum_iteration = 0
     for page in sorted(ranks):
         print(f"  {page}: {ranks[page]:.4f}")
+        sum_iteration += ranks[page]
+    print(f"Total iteration (should be 1): {sum_iteration}")
 
 
 def crawl(directory):
@@ -99,11 +99,15 @@ def sample_pagerank(corpus, damping_factor, n):
         sample_list.append(current_page)
         transition_dict = transition_model(corpus, current_page, damping_factor)
         list_of_probabilities = []
-        sorted_transition = sorted(transition_dict)
-        for page in sorted_transition:
-            list_of_probabilities.append(transition_dict.get(page))
-        list_of_probabilities = transition_dict.values()
-        current_page = random.choices(sorted_transition, list_of_probabilities)[0]
+
+        if len(corpus.get(current_page)) > 0:
+            for page in sorted(corpus.get(current_page)):
+                list_of_probabilities.append(transition_dict.get(page))
+            current_page = random.choices(list(corpus.get(current_page)), list_of_probabilities)[0]
+        else:
+            for j in range(len(corpus)):
+                list_of_probabilities.append((1 - damping_factor) / len(corpus))
+            current_page = random.choices(sorted(corpus), list_of_probabilities)[0]
         i += 1
 
     sample_dictionary = {}
@@ -128,11 +132,11 @@ def iterate_pagerank(corpus, damping_factor):
 
     page_rank_dictionary = {}
     threshold = 0.001
-    N = len(corpus)
-    is_over = N
+    n = len(corpus)
+    is_over = n
 
     for page in corpus:
-        page_rank_dictionary[page] = 1 / N
+        page_rank_dictionary[page] = 1 / n
 
     while is_over > 0:
         for page in corpus:
@@ -141,14 +145,13 @@ def iterate_pagerank(corpus, damping_factor):
                 summation += page_rank_dictionary.get(linked_page) / len(corpus.get(linked_page))
 
             old_pagerank = page_rank_dictionary.get(page)
-            new_pagerank = (1 - damping_factor) / N + damping_factor * summation
+            new_pagerank = (1 - damping_factor) / n + damping_factor * summation
             page_rank_dictionary[page] = new_pagerank
 
             if abs(new_pagerank - old_pagerank) <= threshold:
                 is_over -= 1
             else:
-                is_over = N
-        print(page_rank_dictionary)
+                is_over = n
 
     return page_rank_dictionary
 
