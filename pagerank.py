@@ -17,11 +17,8 @@ def main():
         print(f"  {page}: {ranks[page]:.4f}")
     ranks = iterate_pagerank(corpus, DAMPING)
     print(f"PageRank Results from Iteration")
-    sum_iteration = 0
     for page in sorted(ranks):
         print(f"  {page}: {ranks[page]:.4f}")
-        sum_iteration += ranks[page]
-    print(f"Total iteration (should be 1): {sum_iteration}")
 
 
 def crawl(directory):
@@ -139,14 +136,29 @@ def iterate_pagerank(corpus, damping_factor):
         page_rank_dictionary[page] = 1 / n
 
     while is_over > 0:
-        for page in corpus:
-            summation = 0
-            for linked_page in corpus.get(page):
-                summation += page_rank_dictionary.get(linked_page) / len(corpus.get(linked_page))
+        for page_p in corpus:
+            list_of_incoming_pages = []
+            for page_i in corpus:
+                if page_p in corpus.get(page_i) or len(corpus.get(page_i)) == 0:
+                    list_of_incoming_pages.append(page_i)
 
-            old_pagerank = page_rank_dictionary.get(page)
+            old_pagerank = page_rank_dictionary.get(page_p)
+
+            summation = 0
+
+            if len(list_of_incoming_pages) > 0:
+                for incoming in list_of_incoming_pages:
+                    num_links = len(corpus.get(incoming))
+                    if num_links == 0:
+                        num_links = len(corpus)
+                    summation += page_rank_dictionary.get(incoming) / num_links
+            else:
+                for incoming in corpus:
+                    if len(corpus.get(incoming)) == 0:
+                        summation += page_rank_dictionary.get(incoming) / len(corpus)
+
             new_pagerank = (1 - damping_factor) / n + damping_factor * summation
-            page_rank_dictionary[page] = new_pagerank
+            page_rank_dictionary[page_p] = new_pagerank
 
             if abs(new_pagerank - old_pagerank) <= threshold:
                 is_over -= 1
